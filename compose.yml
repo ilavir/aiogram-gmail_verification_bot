@@ -1,0 +1,47 @@
+services:
+  gmail-bot:
+    build: .
+    container_name: gmail-verification-bot
+    restart: unless-stopped
+    
+    # Load environment variables from .env file
+    env_file:
+      - .env
+    
+    environment:
+      # Override specific paths for containerized environment
+      - GMAIL_TOKEN_FILE=/app/data/token.json
+    
+    volumes:
+      # Persistent storage for Gmail token and logs
+      - gmail_data:/app/data
+      - ./logs:/app/logs
+    
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.5'
+        reservations:
+          memory: 128M
+          cpus: '0.25'
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    
+    # Network configuration
+    networks:
+      - gmail-bot-network
+
+volumes:
+  gmail_data:
+    driver: local
+
+networks:
+  gmail-bot-network:
+    driver: bridge
