@@ -2,7 +2,7 @@ import os
 import pickle
 import base64
 import re
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from google.auth.transport.requests import Request
 from google_auth_oauthlib.flow import InstalledAppFlow
@@ -21,8 +21,8 @@ class GmailService:
         self.token_file = token_file
         self.scopes = scopes
         self.service = None
-        # Start 5 minutes ago
-        self.last_check_time = datetime.now() - timedelta(minutes=5)
+        # Start 5 minutes ago with timezone awareness
+        self.last_check_time = datetime.now(timezone.utc) - timedelta(minutes=5)
 
     async def authenticate(self) -> bool:
         """Authenticate with Gmail API using environment variables"""
@@ -72,8 +72,14 @@ class GmailService:
 
     async def _headless_auth(self, flow):
         """Perform headless OAuth authentication"""
+        # Configure the flow for out-of-band (manual) authentication
+        flow.redirect_uri = 'urn:ietf:wg:oauth:2.0:oob'
+
         # Get the authorization URL
-        auth_url, _ = flow.authorization_url(prompt='consent')
+        auth_url, _ = flow.authorization_url(
+            access_type='offline',
+            prompt='consent'
+        )
 
         logger.info("=" * 60)
         logger.info("🔐 GMAIL AUTHENTICATION REQUIRED")
@@ -164,7 +170,7 @@ class GmailService:
                     verification_messages.append(msg_data)
 
             # Update last check time
-            self.last_check_time = datetime.now()
+            self.last_check_time = datetime.now(timezone.utc)
             return verification_messages
 
         except HttpError as error:
@@ -255,14 +261,29 @@ class GmailService:
         return code in false_positives
 
     def _parse_date(self, date_str: str) -> datetime:
-        """Parse email date string to datetime"""
+        """Parse email date string to datetime with timezone awareness"""
         try:
             # Gmail date format: "Mon, 1 Jan 2024 12:00:00 +0000"
             from email.utils import parsedate_to_datetime
-            return parsedate_to_datetime(date_str)
-        except Exception:
-            return datetime.now()
+            parsed_date = parsedate_to_datetime(date_str)
+
+            # If the parsed date is timezone-naive, assume UTC
+            if parsed_date.tzinfo is None:
+                parsed_date = parsed_date.replace(tzinfo=timezone.utc)
+
+            return parsed_date
+        except Exception as e:
+            logger.warning(f"Failed to parse date '{date_str}': {e}")
+            # Return current time in UTC as fallback
+            return datetime.now(timezone.utc)
 
     def _is_new_message(self, message_date: datetime) -> bool:
         """Check if message is newer than last check"""
+        # Ensure both datetimes are timezone-aware for comparison
+        if message_date.tzinfo is None:
+            message_date = message_date.replace(tzinfo=timezone.utc)
+
+        if self.last_check_time.tzinfo is None:
+            self.last_check_time = self.last_check_time.replace(tzinfo=timezone.utc)
+
         return message_date > self.last_check_time

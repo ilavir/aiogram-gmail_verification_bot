@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import html
+from datetime import timezone
 from typing import List, Dict
 from aiogram import Bot, Dispatcher
 from aiogram.filters import Command
@@ -117,6 +119,22 @@ class TelegramService:
                     logger.error(
                         f"Error sending message to chat {chat_id}: {e}"
                     )
+                    # Try sending without HTML formatting as fallback
+                    try:
+                        plain_text = self._format_plain_message(msg_data)
+                        await self.bot.send_message(
+                            chat_id=chat_id,
+                            text=plain_text
+                        )
+                        logger.info(
+                            f"Sent plain text message to chat {chat_id} "
+                            f"as fallback"
+                        )
+                    except Exception as fallback_error:
+                        logger.error(
+                            f"Fallback message also failed for chat {chat_id}: "
+                            f"{fallback_error}"
+                        )
 
                 # Small delay between messages to avoid rate limiting
                 await asyncio.sleep(0.1)
@@ -159,8 +177,44 @@ class TelegramService:
                 logger.info(f"Broadcasted message to chat {chat_id}")
             except Exception as e:
                 logger.error(f"Error broadcasting to chat {chat_id}: {e}")
+                # Try without HTML formatting as fallback
+                try:
+                    await self.bot.send_message(
+                        chat_id=chat_id,
+                        text=text
+                    )
+                    logger.info(f"Sent plain text broadcast to chat {chat_id}")
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Fallback broadcast failed for chat {chat_id}: "
+                        f"{fallback_error}"
+                    )
 
             await asyncio.sleep(0.1)
+
+    def _format_plain_message(self, msg_data: Dict) -> str:
+        """Format verification message as plain text (fallback)"""
+        codes_text = ""
+        if msg_data['codes']:
+            codes_text = f"\n\nCodes found: {' | '.join(msg_data['codes'])}"
+
+        # Format datetime with timezone awareness
+        msg_date = msg_data['date']
+        if msg_date.tzinfo is None:
+            msg_date = msg_date.replace(tzinfo=timezone.utc)
+
+        time_str = msg_date.strftime('%H:%M:%S UTC')
+
+        text = (
+            f"📧 Verification Email Received\n\n"
+            f"From: {msg_data['sender']}\n"
+            f"Subject: {msg_data['subject']}\n"
+            f"Time: {time_str}"
+            f"{codes_text}\n\n"
+            f"Preview: {msg_data['body'][:200]}..."
+        )
+
+        return text
 
     def _format_verification_message(self, msg_data: Dict) -> str:
         """Format verification message for Telegram"""
@@ -171,13 +225,25 @@ class TelegramService:
                 f"<code>{' | '.join(msg_data['codes'])}</code>"
             )
 
+        # Format datetime with timezone awareness
+        msg_date = msg_data['date']
+        if msg_date.tzinfo is None:
+            msg_date = msg_date.replace(tzinfo=timezone.utc)
+
+        time_str = msg_date.strftime('%H:%M:%S UTC')
+
+        # Escape HTML entities to prevent parsing errors
+        sender = html.escape(msg_data['sender'])
+        subject = html.escape(msg_data['subject'])
+        body_preview = html.escape(msg_data['body'][:200])
+
         text = (
             f"📧 <b>Verification Email Received</b>\n\n"
-            f"👤 <b>From:</b> {msg_data['sender']}\n"
-            f"📋 <b>Subject:</b> {msg_data['subject']}\n"
-            f"🕐 <b>Time:</b> {msg_data['date'].strftime('%H:%M:%S')}"
+            f"👤 <b>From:</b> {sender}\n"
+            f"📋 <b>Subject:</b> {subject}\n"
+            f"🕐 <b>Time:</b> {time_str}"
             f"{codes_text}\n\n"
-            f"📄 <b>Preview:</b>\n<i>{msg_data['body'][:200]}...</i>"
+            f"📄 <b>Preview:</b>\n<i>{body_preview}...</i>"
         )
 
         return text

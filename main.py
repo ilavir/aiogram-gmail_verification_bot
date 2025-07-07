@@ -1,7 +1,7 @@
 import asyncio
 import logging
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 from config import config
 from gmail_service import GmailService
 from telegram_service import TelegramService
@@ -53,7 +53,7 @@ class GmailVerificationBot:
         startup_message = (
             f"🤖 <b>Gmail Verification Bot Started</b>\n\n"
             f"🕐 <b>Started at:</b> "
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
             f"⏱️ <b>Check interval:</b> {self.config.check_interval} seconds\n"
             f"🔍 <b>Monitoring keywords:</b> "
             f"{', '.join(self.config.verification_keywords)}\n"
@@ -138,7 +138,7 @@ class GmailVerificationBot:
         shutdown_message = (
             f"🔴 <b>Gmail Verification Bot Stopped</b>\n\n"
             f"🕐 <b>Stopped at:</b> "
-            f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+            f"{datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}\n"
             f"👋 Bot is no longer monitoring Gmail."
         )
 
