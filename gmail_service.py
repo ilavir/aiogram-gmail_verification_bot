@@ -238,10 +238,10 @@ class GmailService:
         """Extract verification codes from text using regex patterns"""
         patterns = [
             r'\b\d{6}\b',  # 6-digit codes
-            r'\b\d{4}\b',  # 4-digit codes
-            r'\b\d{8}\b',  # 8-digit codes
-            r'\b[A-Z0-9]{6}\b',  # 6-character alphanumeric codes
-            r'\b[A-Z0-9]{8}\b',  # 8-character alphanumeric codes
+            # r'\b\d{4}\b',  # 4-digit codes
+            # r'\b\d{8}\b',  # 8-digit codes
+            # r'\b[A-Z0-9]{6}\b',  # 6-character alphanumeric codes
+            # r'\b[A-Z0-9]{8}\b',  # 8-character alphanumeric codes
         ]
 
         codes = []

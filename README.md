@@ -11,6 +11,8 @@ A Telegram bot that monitors your Gmail inbox for verification codes and forward
 - 🔒 Secure OAuth2 authentication with Gmail
 - 📊 Status commands and monitoring
 - 🎯 Customizable keywords and check intervals
+- 🐳 Docker support for easy deployment
+- 📝 Comprehensive logging and error handling
 
 ## Production Deployment with Docker
 
@@ -190,17 +192,30 @@ The bot recognizes these patterns:
 
 ```
 gmail_cards_bot/
-├── .venv/                 # Virtual environment
-├── main.py               # Main application
-├── config.py             # Configuration management
-├── gmail_service.py      # Gmail API integration
-├── telegram_service.py   # Telegram bot service
+├── scripts/              # Docker management scripts
+│   ├── start.sh         # Start containers
+│   ├── stop.sh          # Stop containers
+│   ├── restart.sh       # Restart containers
+│   └── logs.sh          # View logs
+├── logs/                # Application logs
+│   └── bot.log          # Main log file
+├── .venv/               # Virtual environment
+├── main.py              # Main application
+├── config.py            # Configuration management
+├── gmail_service.py     # Gmail API integration
+├── telegram_service.py  # Telegram bot service
+├── auth_gmail.py        # Gmail authentication helper
 ├── setup.py             # Setup script
+├── deploy.sh            # Docker deployment script
+├── compose.yml          # Docker Compose configuration
+├── Dockerfile           # Docker image definition
 ├── requirements.txt     # Python dependencies
 ├── .env.example         # Environment template
+├── .env.production      # Production environment template
 ├── .env                 # Your configuration (create this)
 ├── token.json           # Gmail auth token (auto-generated)
-├── bot.log              # Application logs
+├── SERVER_SETUP.md      # Server authentication guide
+├── DEPLOYMENT.md        # Deployment instructions
 └── README.md            # This file
 ```
 
@@ -224,9 +239,13 @@ gmail_cards_bot/
 
 ## Logs
 
-Check `bot.log` for detailed operation logs:
+Check logs for detailed operation logs:
 ```bash
-tail -f bot.log
+# View current logs
+tail -f logs/bot.log
+
+# For Docker deployment
+docker compose logs -f gmail-bot
 ```
 
 ## Customization

@@ -207,11 +207,9 @@ class TelegramService:
 
         text = (
             f"📧 Verification Email Received\n\n"
-            f"From: {msg_data['sender']}\n"
             f"Subject: {msg_data['subject']}\n"
             f"Time: {time_str}"
-            f"{codes_text}\n\n"
-            f"Preview: {msg_data['body'][:200]}..."
+            f"{codes_text}"
         )
 
         return text
@@ -233,17 +231,13 @@ class TelegramService:
         time_str = msg_date.strftime('%H:%M:%S UTC')
 
         # Escape HTML entities to prevent parsing errors
-        sender = html.escape(msg_data['sender'])
         subject = html.escape(msg_data['subject'])
-        body_preview = html.escape(msg_data['body'][:200])
 
         text = (
             f"📧 <b>Verification Email Received</b>\n\n"
-            f"👤 <b>From:</b> {sender}\n"
             f"📋 <b>Subject:</b> {subject}\n"
             f"🕐 <b>Time:</b> {time_str}"
-            f"{codes_text}\n\n"
-            f"📄 <b>Preview:</b>\n<i>{body_preview}...</i>"
+            f"{codes_text}"
         )
 
         return text
