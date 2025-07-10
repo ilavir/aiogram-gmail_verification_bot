@@ -17,8 +17,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy application code
 COPY *.py ./
 
-# Create directory for persistent data
-RUN mkdir -p /app/data
+# Create directories for persistent data and logs
+RUN mkdir -p /app/data /app/logs
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

@@ -15,7 +15,7 @@ services:
     volumes:
       # Persistent storage for Gmail token and logs
       - gmail_data:/app/data
-      - ./logs:/app/logs
+      - gmail_logs:/app/logs
     
     # Resource limits for production
     deploy:
@@ -40,6 +40,8 @@ services:
 
 volumes:
   gmail_data:
+    driver: local
+  gmail_logs:
     driver: local
 
 networks:
