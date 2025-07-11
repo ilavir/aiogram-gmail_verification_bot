@@ -220,17 +220,37 @@ class GmailService:
             return None
 
     def _extract_message_body(self, payload) -> str:
-        """Extract text from message payload"""
+        """Extract text from message payload (both plain text and HTML)"""
         body = ""
 
         if 'parts' in payload:
             for part in payload['parts']:
-                if part['mimeType'] == 'text/plain':
+                if part['mimeType'] == 'text/plain' and 'data' in part['body']:
                     data = part['body']['data']
                     body += base64.urlsafe_b64decode(data).decode('utf-8')
-        elif payload['mimeType'] == 'text/plain':
+                elif part['mimeType'] == 'text/html' and 'data' in part['body']:
+                    data = part['body']['data']
+                    html_content = base64.urlsafe_b64decode(data).decode('utf-8')
+                    # Extract text from HTML using simple regex
+                    import re
+                    # Remove HTML tags and get text content
+                    text_content = re.sub(r'<[^>]+>', ' ', html_content)
+                    # Clean up whitespace
+                    text_content = re.sub(r'\s+', ' ', text_content).strip()
+                    body += text_content
+        elif payload['mimeType'] == 'text/plain' and 'data' in payload['body']:
             data = payload['body']['data']
             body = base64.urlsafe_b64decode(data).decode('utf-8')
+        elif payload['mimeType'] == 'text/html' and 'data' in payload['body']:
+            data = payload['body']['data']
+            html_content = base64.urlsafe_b64decode(data).decode('utf-8')
+            # Extract text from HTML using simple regex
+            import re
+            # Remove HTML tags and get text content
+            text_content = re.sub(r'<[^>]+>', ' ', html_content)
+            # Clean up whitespace
+            text_content = re.sub(r'\s+', ' ', text_content).strip()
+            body = text_content
 
         return body
 
