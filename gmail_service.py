@@ -277,7 +277,7 @@ class GmailService:
 
     def _is_false_positive(self, code: str) -> bool:
         """Check if code is likely a false positive"""
-        false_positives = ['2024', '2025', '1234', '0000', '9999']
+        false_positives = ['2024', '2025', '1234', '0000', '9999', '000000']
         return code in false_positives
 
     def _parse_date(self, date_str: str) -> datetime:
