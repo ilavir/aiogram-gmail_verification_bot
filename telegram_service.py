@@ -165,6 +165,36 @@ class TelegramService:
 
                     await asyncio.sleep(0.1)
 
+    async def send_status_message(self, text: str):
+        """Send status message (startup/shutdown) to first chat only"""
+        if not self.config.telegram_chat_ids:
+            logger.warning("No chat IDs configured for status messages")
+            return
+
+        # Send only to the first chat ID
+        first_chat_id = self.config.telegram_chat_ids[0]
+        try:
+            await self.bot.send_message(
+                chat_id=first_chat_id,
+                text=text,
+                parse_mode='HTML'
+            )
+            logger.info(f"Sent status message to first chat {first_chat_id}")
+        except Exception as e:
+            logger.error(f"Error sending status message to chat {first_chat_id}: {e}")
+            # Try without HTML formatting as fallback
+            try:
+                await self.bot.send_message(
+                    chat_id=first_chat_id,
+                    text=text
+                )
+                logger.info(f"Sent plain text status message to chat {first_chat_id}")
+            except Exception as fallback_error:
+                logger.error(
+                    f"Fallback status message failed for chat {first_chat_id}: "
+                    f"{fallback_error}"
+                )
+
     async def broadcast_message(self, text: str):
         """Broadcast a message to all configured chats"""
         for chat_id in self.config.telegram_chat_ids:

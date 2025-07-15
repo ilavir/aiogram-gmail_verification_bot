@@ -49,7 +49,7 @@ class GmailVerificationBot:
 
         logger.info("Gmail authentication successful")
 
-        # Send startup message to all chats
+        # Send startup message to first chat only
         startup_message = (
             f"🤖 <b>Gmail Verification Bot Started</b>\n\n"
             f"🕐 <b>Started at:</b> "
@@ -61,7 +61,7 @@ class GmailVerificationBot:
             f"✅ Ready to monitor Gmail for verification codes!"
         )
 
-        await self.telegram_service.broadcast_message(startup_message)
+        await self.telegram_service.send_status_message(startup_message)
         logger.info("Bot initialized successfully")
 
     async def check_gmail(self):
@@ -143,7 +143,7 @@ class GmailVerificationBot:
         )
 
         try:
-            await self.telegram_service.broadcast_message(shutdown_message)
+            await self.telegram_service.send_status_message(shutdown_message)
         except Exception:
             pass
 
