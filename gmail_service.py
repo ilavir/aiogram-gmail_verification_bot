@@ -28,7 +28,6 @@ class GmailService:
         """Authenticate with Gmail API using environment variables"""
         try:
             creds = None
-
             # Load existing token
             if os.path.exists(self.token_file):
                 with open(self.token_file, 'rb') as token:
@@ -37,16 +36,27 @@ class GmailService:
             # If there are no (valid) credentials available, let user log in
             if not creds or not creds.valid:
                 if creds and creds.expired and creds.refresh_token:
-                    creds.refresh(Request())
-                else:
+                    try:
+                        # Attempt to refresh the token
+                        creds.refresh(Request())
+                        logger.info("Token refreshed successfully")
+                    except Exception as refresh_error:
+                        logger.warning(f"Token refresh failed: {refresh_error}")
+                        # If refresh fails, clear credentials and re-authenticate
+                        creds = None
+
+                # If we still don't have valid credentials, re-authenticate
+                if not creds or not creds.valid:
+                    logger.info("Re-authenticating due to invalid/expired credentials")
+
                     # Create credentials config from environment variables
                     client_config = {
                         "installed": {
                             "client_id": self.client_id,
                             "client_secret": self.client_secret,
-                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",  # noqa: E501
+                            "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                             "token_uri": "https://oauth2.googleapis.com/token",
-                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",  # noqa: E501
+                            "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
                             "redirect_uris": ["urn:ietf:wg:oauth:2.0:oob"]
                         }
                     }
@@ -54,13 +64,12 @@ class GmailService:
                     flow = InstalledAppFlow.from_client_config(
                         client_config, self.scopes
                     )
-
                     # Use headless authentication for server environments
                     creds = await self._headless_auth(flow)
 
-                # Save the credentials for the next run
-                with open(self.token_file, 'wb') as token:
-                    pickle.dump(creds, token)
+            # Save the credentials for the next run
+            with open(self.token_file, 'wb') as token:
+                pickle.dump(creds, token)
 
             self.service = build('gmail', 'v1', credentials=creds)
             logger.info("Gmail authentication successful")
@@ -68,6 +77,13 @@ class GmailService:
 
         except Exception as e:
             logger.error(f"Gmail authentication failed: {e}")
+            # Clean up corrupted token file
+            if os.path.exists(self.token_file):
+                try:
+                    os.remove(self.token_file)
+                    logger.info("Removed corrupted token file")
+                except Exception as cleanup_error:
+                    logger.warning(f"Failed to remove token file: {cleanup_error}")
             return False
 
     async def _headless_auth(self, flow):
