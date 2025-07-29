@@ -15,14 +15,36 @@ logger = logging.getLogger(__name__)
 
 class GmailService:
     def __init__(self, client_id: str, client_secret: str, token_file: str,
-                 scopes: List[str]):
+                 scopes: List[str], telegram_service=None):
         self.client_id = client_id
         self.client_secret = client_secret
         self.token_file = token_file
         self.scopes = scopes
         self.service = None
+        self.telegram_service = telegram_service
         # Start 5 minutes ago with timezone awareness
         self.last_check_time = datetime.now(timezone.utc) - timedelta(minutes=5)
+
+    async def send_auth_error_notification(self):
+        """Send Telegram notification when Gmail authentication is required"""
+        if self.telegram_service:
+            try:
+                message = (
+                    "🚨 *Gmail Authentication Required*\n\n"
+                    "The Gmail bot token has expired and needs manual re-authentication.\n\n"
+                    "*To fix this (Docker):*\n"
+                    "1. `./scripts/stop.sh`\n"
+                    "2. `docker volume rm gmail_cards_bot_gmail_data`\n"
+                    "3. Re-authenticate locally:\n"
+                    "   • `source .venv/bin/activate`\n"
+                    "   • `python auth_gmail.py`\n"
+                    "4. `./scripts/start.sh`\n\n"
+                    "The bot will stop checking Gmail until this is resolved."
+                )
+                await self.telegram_service.send_status_message(message)
+                logger.info("Sent Gmail authentication error notification to admin")
+            except Exception as e:
+                logger.error(f"Failed to send auth error notification: {e}")
 
     async def authenticate(self) -> bool:
         """Authenticate with Gmail API using environment variables"""
@@ -193,7 +215,14 @@ class GmailService:
             logger.error(f'Gmail API error: {error}')
             return []
         except Exception as e:
+            error_str = str(e)
             logger.error(f'Error getting messages: {e}')
+
+            # Check if this is an auth error that requires manual intervention
+            if 'invalid_grant' in error_str or 'Token has been expired or revoked' in error_str:
+                logger.critical("Gmail authentication expired - manual re-authentication required!")
+                await self.send_auth_error_notification()
+
             return []
 
     async def _get_message_details(self, message_id: str) -> Optional[Dict]:

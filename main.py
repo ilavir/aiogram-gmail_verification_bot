@@ -30,13 +30,14 @@ logger = logging.getLogger(__name__)
 class GmailVerificationBot:
     def __init__(self):
         self.config = config
+        self.telegram_service = TelegramService(self.config)
         self.gmail_service = GmailService(
             client_id=self.config.gmail_client_id,
             client_secret=self.config.gmail_client_secret,
             token_file=self.config.gmail_token_file,
-            scopes=self.config.gmail_scopes
+            scopes=self.config.gmail_scopes,
+            telegram_service=self.telegram_service
         )
-        self.telegram_service = TelegramService(self.config)
         self.running = False
 
     async def initialize(self):
