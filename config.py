@@ -12,6 +12,7 @@ class Config:
     # Telegram Configuration
     telegram_bot_token: str
     telegram_chat_ids: List[str]
+    telegram_admin_ids: List[str]
 
     # Gmail Configuration
     gmail_client_id: str
@@ -28,6 +29,7 @@ class Config:
         """Create Config instance from environment variables"""
         telegram_bot_token = os.getenv('TELEGRAM_BOT_TOKEN')
         telegram_chat_ids_str = os.getenv('TELEGRAM_CHAT_IDS')
+        telegram_admin_ids_str = os.getenv('TELEGRAM_ADMIN_IDS')
         gmail_client_id = os.getenv('GMAIL_CLIENT_ID')
         gmail_client_secret = os.getenv('GMAIL_CLIENT_SECRET')
 
@@ -35,6 +37,8 @@ class Config:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
         if not telegram_chat_ids_str:
             raise ValueError("TELEGRAM_CHAT_IDS is required")
+        if not telegram_admin_ids_str:
+            raise ValueError("TELEGRAM_ADMIN_IDS is required")
         if not gmail_client_id:
             raise ValueError("GMAIL_CLIENT_ID is required")
         if not gmail_client_secret:
@@ -45,9 +49,15 @@ class Config:
             chat_id.strip() for chat_id in telegram_chat_ids_str.split(',')
         ]
 
+        # Parse admin IDs (comma-separated)
+        telegram_admin_ids = [
+            admin_id.strip() for admin_id in telegram_admin_ids_str.split(',')
+        ]
+
         return cls(
             telegram_bot_token=telegram_bot_token,
             telegram_chat_ids=telegram_chat_ids,
+            telegram_admin_ids=telegram_admin_ids,
             gmail_client_id=gmail_client_id,
             gmail_client_secret=gmail_client_secret,
             gmail_token_file=os.getenv('GMAIL_TOKEN_FILE', 'token.json'),

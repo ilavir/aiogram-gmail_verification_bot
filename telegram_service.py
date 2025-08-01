@@ -24,6 +24,7 @@ class TelegramService:
         self.dp.message.register(self.help_command, Command("help"))
         self.dp.message.register(self.status_command, Command("status"))
         self.dp.message.register(self.chats_command, Command("chats"))
+        self.dp.message.register(self.admin_command, Command("admin"))
 
     async def start_command(self, message: Message):
         """Handle /start command"""
@@ -35,7 +36,8 @@ class TelegramService:
             "/start - Show this message\n"
             "/help - Show help information\n"
             "/status - Check bot status\n"
-            "/chats - List configured chat IDs"
+            "/chats - List configured chat IDs (admin only)\n"
+            "/admin - Admin panel (admin only)"
         )
         await message.answer(welcome_text)
 
@@ -53,12 +55,15 @@ class TelegramService:
             f"• Check interval: {self.config.check_interval} seconds\n"
             f"• Keywords: {', '.join(self.config.verification_keywords)}\n"
             f"• Target chats: {len(self.config.telegram_chat_ids)} "
+            f"configured\n"
+            f"• Admin chats: {len(self.config.telegram_admin_ids)} "
             f"configured\n\n"
             "Commands:\n"
             "/start - Welcome message\n"
             "/help - This help message\n"
             "/status - Bot status\n"
-            "/chats - List configured chat IDs"
+            "/chats - List configured chat IDs (admin only)\n"
+            "/admin - Admin panel (admin only)"
         )
         await message.answer(help_text)
 
@@ -74,10 +79,11 @@ class TelegramService:
         await message.answer(status_text)
 
     async def chats_command(self, message: Message):
-        """Handle /chats command - show configured chat IDs"""
-        if str(message.chat.id) not in self.config.telegram_chat_ids:
+        """Handle /chats command - show configured chat IDs (admin only)"""
+        if not self.is_admin(str(message.chat.id)):
             await message.answer(
-                "❌ You're not authorized to view this information."
+                "❌ You're not authorized to view this information. "
+                "This command is only available to administrators."
             )
             return
 
@@ -94,7 +100,45 @@ class TelegramService:
             except Exception:
                 chats_text += f"{i}. Chat ID: {chat_id} (Info unavailable)\n"
 
+        chats_text += f"\n👑 Admin IDs:\n"
+        for i, admin_id in enumerate(self.config.telegram_admin_ids, 1):
+            try:
+                chat = await self.bot.get_chat(admin_id)
+                admin_name = (
+                    chat.title or chat.first_name or
+                    chat.username or "Unknown"
+                )
+                chats_text += f"{i}. {admin_name} ({admin_id})\n"
+            except Exception:
+                chats_text += f"{i}. Admin ID: {admin_id} (Info unavailable)\n"
+
         await message.answer(chats_text)
+
+    async def admin_command(self, message: Message):
+        """Handle /admin command - show admin information (admin only)"""
+        if not self.is_admin(str(message.chat.id)):
+            await message.answer(
+                "❌ You're not authorized to use this command. "
+                "This command is only available to administrators."
+            )
+            return
+
+        admin_text = (
+            "👑 <b>Admin Panel</b>\n\n"
+            f"🤖 <b>Bot Status:</b> Active\n"
+            f"📧 <b>Gmail monitoring:</b> Enabled\n"
+            f"⏱️ <b>Check interval:</b> {self.config.check_interval}s\n"
+            f"💬 <b>Target chats:</b> {len(self.config.telegram_chat_ids)}\n"
+            f"👑 <b>Admin chats:</b> {len(self.config.telegram_admin_ids)}\n"
+            f"🔍 <b>Keywords:</b> {len(self.config.verification_keywords)} configured\n\n"
+            f"<b>Admin Commands:</b>\n"
+            f"/admin - This admin panel\n"
+            f"/chats - View all configured chats\n"
+            f"/status - Bot status (available to all)\n\n"
+            f"<b>Your Chat ID:</b> <code>{message.chat.id}</code>"
+        )
+
+        await message.answer(admin_text, parse_mode='HTML')
 
     async def send_verification_message(self, messages: List[Dict]):
         """Send verification code messages to all target chats"""
@@ -165,35 +209,40 @@ class TelegramService:
 
                     await asyncio.sleep(0.1)
 
-    async def send_status_message(self, text: str):
-        """Send status message (startup/shutdown) to first chat only"""
-        if not self.config.telegram_chat_ids:
-            logger.warning("No chat IDs configured for status messages")
+    async def send_admin_message(self, text: str):
+        """Send message to all admin chats"""
+        if not self.config.telegram_admin_ids:
+            logger.warning("No admin IDs configured for admin messages")
             return
 
-        # Send only to the first chat ID
-        first_chat_id = self.config.telegram_chat_ids[0]
-        try:
-            await self.bot.send_message(
-                chat_id=first_chat_id,
-                text=text,
-                parse_mode='HTML'
-            )
-            logger.info(f"Sent status message to first chat {first_chat_id}")
-        except Exception as e:
-            logger.error(f"Error sending status message to chat {first_chat_id}: {e}")
-            # Try without HTML formatting as fallback
+        for admin_id in self.config.telegram_admin_ids:
             try:
                 await self.bot.send_message(
-                    chat_id=first_chat_id,
-                    text=text
+                    chat_id=admin_id,
+                    text=text,
+                    parse_mode='HTML'
                 )
-                logger.info(f"Sent plain text status message to chat {first_chat_id}")
-            except Exception as fallback_error:
-                logger.error(
-                    f"Fallback status message failed for chat {first_chat_id}: "
-                    f"{fallback_error}"
-                )
+                logger.info(f"Sent admin message to {admin_id}")
+            except Exception as e:
+                logger.error(f"Error sending admin message to {admin_id}: {e}")
+                # Try without HTML formatting as fallback
+                try:
+                    await self.bot.send_message(
+                        chat_id=admin_id,
+                        text=text
+                    )
+                    logger.info(f"Sent plain text admin message to {admin_id}")
+                except Exception as fallback_error:
+                    logger.error(
+                        f"Fallback admin message failed for {admin_id}: "
+                        f"{fallback_error}"
+                    )
+
+            await asyncio.sleep(0.1)
+
+    async def send_status_message(self, text: str):
+        """Send status message (startup/shutdown) to admin chats"""
+        await self.send_admin_message(text)
 
     async def broadcast_message(self, text: str):
         """Broadcast a message to all configured chats"""
@@ -289,3 +338,7 @@ class TelegramService:
     def is_authorized_chat(self, chat_id: str) -> bool:
         """Check if chat ID is in the authorized list"""
         return chat_id in self.config.telegram_chat_ids
+
+    def is_admin(self, chat_id: str) -> bool:
+        """Check if chat ID is in the admin list"""
+        return chat_id in self.config.telegram_admin_ids

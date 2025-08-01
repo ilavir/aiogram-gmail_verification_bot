@@ -55,6 +55,10 @@ def get_chat_id_instructions():
     print("   3. Copy the 'Id' number (including negative sign if present)")
     print("   4. For groups: Add bot to group, send a message, use group ID")
     print("   5. Multiple IDs: separate with commas (e.g., 123456,-789012)")
+    print("\n👑 Admin vs Regular Chat IDs:")
+    print("   • TELEGRAM_CHAT_IDS: Receive verification codes")
+    print("   • TELEGRAM_ADMIN_IDS: Receive status messages + admin commands")
+    print("   • Admin IDs can be the same as or different from chat IDs")
 
 
 def main():
@@ -79,7 +83,7 @@ def main():
     get_chat_id_instructions()
 
     print("\n🚀 Next steps:")
-    print("   1. Edit .env file with your tokens, chat IDs, and Gmail "
+    print("   1. Edit .env file with your tokens, chat IDs, admin IDs, and Gmail "
           "credentials")
     print("   2. Run: python main.py")
     print("   3. Complete Gmail OAuth in browser on first run")

@@ -123,6 +123,7 @@ Configure these variables in `.env`:
 # Telegram Bot Configuration
 TELEGRAM_BOT_TOKEN=your_bot_token_here
 TELEGRAM_CHAT_IDS=chat_id_1,chat_id_2,chat_id_3  # Comma-separated
+TELEGRAM_ADMIN_IDS=admin_chat_id_1,admin_chat_id_2  # Comma-separated admin IDs
 
 # Gmail API Configuration (from Google Cloud Console)
 GMAIL_CLIENT_ID=your_gmail_client_id.apps.googleusercontent.com
@@ -158,10 +159,14 @@ On first run, the bot will:
 
 ### Bot Commands
 
+**Available to all users:**
 - `/start` - Welcome message and basic info
 - `/help` - Detailed help and configuration info
 - `/status` - Current bot status
-- `/chats` - List configured chat IDs (authorized users only)
+
+**Admin-only commands:**
+- `/admin` - Admin panel with detailed bot information
+- `/chats` - List all configured chat IDs and admin IDs
 
 ## How It Works
 
@@ -169,7 +174,8 @@ On first run, the bot will:
 2. **Keyword Matching**: Searches for emails containing verification keywords
 3. **Code Extraction**: Uses regex patterns to find verification codes
 4. **Multi-Chat Delivery**: Sends formatted messages to all configured chats
-5. **Duplicate Prevention**: Tracks processed emails to avoid duplicates
+5. **Admin Notifications**: Sends status messages to dedicated admin chats
+6. **Duplicate Prevention**: Tracks processed emails to avoid duplicates
 
 ## Verification Code Patterns
 
@@ -183,7 +189,7 @@ The bot recognizes these patterns:
 ## Security Features
 
 - OAuth2 authentication with Gmail (no password storage)
-- Authorized chat ID validation
+- Separate admin and user chat authorization
 - Secure token storage
 - Rate limiting protection
 - Error handling and logging
@@ -266,6 +272,7 @@ CHECK_INTERVAL=60  # Check every minute
 Add multiple chat IDs separated by commas:
 ```env
 TELEGRAM_CHAT_IDS=123456789,-987654321,555666777
+TELEGRAM_ADMIN_IDS=123456789,987654321  # Admin IDs for status messages
 ```
 
 ## License

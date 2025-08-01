@@ -50,7 +50,7 @@ class GmailVerificationBot:
 
         logger.info("Gmail authentication successful")
 
-        # Send startup message to first chat only
+        # Send startup message to admin chats
         startup_message = (
             f"🤖 <b>Gmail Verification Bot Started</b>\n\n"
             f"🕐 <b>Started at:</b> "
@@ -58,7 +58,8 @@ class GmailVerificationBot:
             f"⏱️ <b>Check interval:</b> {self.config.check_interval} seconds\n"
             f"🔍 <b>Monitoring keywords:</b> "
             f"{', '.join(self.config.verification_keywords)}\n"
-            f"💬 <b>Target chats:</b> {len(self.config.telegram_chat_ids)}\n\n"
+            f"💬 <b>Target chats:</b> {len(self.config.telegram_chat_ids)}\n"
+            f"👑 <b>Admin chats:</b> {len(self.config.telegram_admin_ids)}\n\n"
             f"✅ Ready to monitor Gmail for verification codes!"
         )
 
